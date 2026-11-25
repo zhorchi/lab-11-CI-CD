@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-blue
+  labels:
+    app: lab11
+    color: blue
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 5
+  progressDeadlineSeconds: 120
+  selector:
+    matchLabels:
+      app: lab11
+      color: blue
+  template:
+    metadata:
+      labels:
+        app: lab11
+        color: blue
+    spec:
+      containers:
+        - name: app
+          image: lab11-app:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-green
+  labels:
+    app: lab11
+    color: green
+spec:
+  replicas: 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 5
+  progressDeadlineSeconds: 120
+  selector:
+    matchLabels:
+      app: lab11
+      color: green
+  template:
+    metadata:
+      labels:
+        app: lab11
+        color: green
+    spec:
+      containers:
+        - name: app
+          image: lab11-app:v2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+spec:
+  type: ClusterIP
+  selector:
+    app: lab11
+    color: blue
+  ports:
+    - port: 80
+      targetPort: 8000

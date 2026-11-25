@@ -1,0 +1,36 @@
+name: Kubernetes Rolling Update
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: test
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Kubernetes cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: lab11
+
+      - name: Build and load Docker images
+        run: |
+          for version in v1 v2 broken; do
+            docker build --build-arg APP_VERSION="$version" -t "lab11-app:$version" .
+          done
+          kind load docker-image lab11-app:v1 lab11-app:v2 lab11-app:broken --name lab11
+
+      - name: Deploy initial version
+        run: bash scripts/deploy.sh setup
+
+      - name: Rolling update and smoke tests
+        run: bash scripts/deploy.sh rolling
+
+      - name: Blue-Green switch and rollback
+        run: bash scripts/deploy.sh blue-green
